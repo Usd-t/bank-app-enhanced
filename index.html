@@ -1,0 +1,801 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bank App Enhanced</title>
+    <style>
+        :root {
+            --bg-gray: #F2F2F4;
+            --card-white: #FFFFFF;
+            --text-black: #1A1A1A;
+            --text-gray: #8E8E93;
+            --accent-red: #D0021B; 
+            --accent-green: #34C759;
+            --border-color: #E5E5E5;
+            --safe-area-top: env(safe-area-inset-top);
+            --safe-area-bottom: env(safe-area-inset-bottom);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+     {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none; 
+    }
+
+    [contenteditable="true"] { 
+        user-select: text; 
+        cursor: text; 
+    }
+
+    body {
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .mobile-container {
+        width: 100%;
+        max-width: 414px;
+        background-color: var(--bg-gray);
+        height: 100%;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 0 40px rgba(0,0,0,0.3);
+    }
+    
+    @media screen and (max-width: 450px) {
+        body { background-color: var(--bg-gray); }
+        .mobile-container { max-width: 100%; box-shadow: none; }
+    }
+
+    .header-sticky {
+        background-color: var(--bg-gray);
+        z-index: 10;
+        flex-shrink: 0;
+        padding-top: var(--safe-area-top);
+    }
+
+    .account-card {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F9F9F9 100%);
+        padding: 24px;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .branch-info { 
+        font-size: 13px; 
+        color: var(--text-gray); 
+        margin-bottom: 12px;
+        letter-spacing: 0.2px;
+    }
+    
+    .balance-row { 
+        display: flex; 
+        align-items: flex-end;
+        margin-bottom: 8px;
+    }
+    
+    .balance-amount { 
+        font-size: 32px; 
+        font-weight: 700; 
+        letter-spacing: -1px; 
+        margin-right: 6px; 
+        min-width: 50px;
+        transition: all 0.3s ease;
+    }
+    
+    .currency { 
+        font-size: 18px; 
+        font-weight: 600;
+        color: var(--text-gray);
+    }
+    
+    .balance-toggle {
+        display: flex; 
+        align-items: center; 
+        font-size: 12px; 
+        color: var(--text-gray); 
+        cursor: pointer; 
+        width: fit-content;
+        padding: 4px 0;
+        transition: color 0.2s;
+    }
+    
+    .balance-toggle:hover {
+        color: var(--text-black);
+    }
+    
+    .toggle-switch {
+        width: 40px; 
+        height: 22px; 
+        background-color: #E5E5E5; 
+        border-radius: 12px; 
+        margin-left: 10px; 
+        position: relative; 
+        transition: background-color 0.3s ease;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .toggle-switch::after {
+        content: ''; 
+        position: absolute; 
+        top: 2px; 
+        left: 2px; 
+        width: 18px; 
+        height: 18px; 
+        background: white; 
+        border-radius: 50%; 
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .balance-toggle.active .toggle-switch { 
+        background-color: var(--accent-green); 
+    }
+    
+    .balance-toggle.active .toggle-switch::after { 
+        transform: translateX(18px); 
+    }
+
+    .controls-area {
+        padding: 14px 16px; 
+        background: var(--card-white); 
+        margin-top: 12px;
+        border-top: 1px solid var(--border-color); 
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .search-btn {
+        width: 100%; 
+        padding: 12px; 
+        border: 2px solid var(--accent-red); 
+        border-radius: 8px;
+        background: linear-gradient(to bottom, #fff 0%, #fafafa 100%); 
+        color: var(--text-black); 
+        font-size: 14px; 
+        font-weight: 600;
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .search-btn:active {
+        transform: scale(0.98);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .transaction-list-container {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background: var(--bg-gray);
+        padding-bottom: var(--safe-area-bottom);
+    }
+
+    .list-header {
+        padding: 12px 16px; 
+        background: var(--bg-gray); 
+        font-size: 13px; 
+        color: var(--text-gray); 
+        font-weight: 600;
+        position: sticky; 
+        top: 0; 
+        z-index: 5;
+        letter-spacing: 0.3px;
+    }
+
+    .list-item {
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center;
+        padding: 16px; 
+        border-bottom: 1px solid var(--border-color); 
+        background: var(--card-white);
+        cursor: pointer; 
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .list-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0;
+        background: var(--accent-red);
+        transition: width 0.2s ease;
+    }
+    
+    .list-item:active {
+        background-color: #f9f9f9;
+    }
+    
+    .list-item:active::before {
+        width: 3px;
+    }
+
+    .item-left { 
+        display: flex; 
+        flex-direction: column; 
+        flex: 1; 
+        margin-right: 10px; 
+        overflow: hidden;
+    }
+    
+    .item-date { 
+        font-size: 12px; 
+        color: var(--text-gray); 
+        margin-bottom: 5px;
+        letter-spacing: 0.2px;
+    }
+    
+    .item-desc { 
+        font-size: 15px; 
+        color: var(--text-black); 
+        font-weight: 500; 
+        overflow: hidden; 
+        white-space: nowrap; 
+        text-overflow: ellipsis;
+        line-height: 1.4;
+    }
+    
+    .item-amount { 
+        font-size: 17px; 
+        font-weight: 700; 
+        white-space: nowrap;
+        letter-spacing: -0.3px;
+    }
+    
+    .amount-neg { color: var(--accent-red); }
+    .amount-pos { color: var(--accent-green); }
+    
+    .chevron { 
+        color: #D1D1D6; 
+        font-size: 22px; 
+        margin-left: 8px;
+        transition: transform 0.2s ease;
+    }
+    
+    .list-item:active .chevron {
+        transform: translateX(3px);
+    }
+
+    .detail-page {
+        position: absolute; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%;
+        background-color: var(--bg-gray); 
+        z-index: 200;
+        transform: translateX(100%); 
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex; 
+        flex-direction: column; 
+        padding-top: var(--safe-area-top);
+    }
+    
+    .detail-page.active { 
+        transform: translateX(0); 
+    }
+
+    .nav-bar {
+        height: 52px; 
+        background: var(--card-white); 
+        border-bottom: 1px solid var(--border-color);
+        display: flex; 
+        align-items: center; 
+        padding: 0 16px; 
+        justify-content: space-between; 
+        flex-shrink: 0;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .nav-back { 
+        color: #007AFF; 
+        font-size: 16px; 
+        cursor: pointer; 
+        display: flex; 
+        align-items: center; 
+        padding: 10px 0;
+        transition: opacity 0.2s;
+    }
+    
+    .nav-back:active {
+        opacity: 0.6;
+    }
+    
+    .nav-back::before { 
+        content: '‹'; 
+        font-size: 32px; 
+        margin-right: 4px; 
+        position: relative; 
+        top: -1px;
+    }
+    
+    .nav-title { 
+        font-weight: 600; 
+        font-size: 17px;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    
+    .nav-placeholder { 
+        width: 40px; 
+    } 
+
+    .detail-content { 
+        flex: 1; 
+        overflow-y: auto; 
+        padding-top: 20px; 
+        padding-bottom: calc(20px + var(--safe-area-bottom));
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .detail-card { 
+        background: var(--card-white); 
+        border-top: 1px solid var(--border-color); 
+        border-bottom: 1px solid var(--border-color); 
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .detail-row { 
+        padding: 16px; 
+        display: flex; 
+        justify-content: space-between; 
+        border-bottom: 1px solid var(--border-color); 
+        align-items: center;
+        min-height: 54px;
+    }
+    
+    .detail-row:last-child { 
+        border-bottom: none; 
+    }
+    
+    .label { 
+        color: var(--text-gray); 
+        font-size: 14px; 
+        width: 110px; 
+        flex-shrink: 0;
+        font-weight: 500;
+    }
+    
+    .value { 
+        color: var(--text-black); 
+        font-size: 14px; 
+        font-weight: 500; 
+        text-align: right; 
+        flex: 1; 
+        word-break: break-all;
+    }
+    
+    .value-large { 
+        font-size: 36px; 
+        font-weight: 700; 
+        text-align: center; 
+        padding: 32px 0;
+        letter-spacing: -1px;
+    }
+    
+    .inquiry-btn {
+        padding: 14px; 
+        border: 2px solid var(--accent-red); 
+        color: var(--accent-red); 
+        border-radius: 8px; 
+        font-weight: 600; 
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        background: white;
+    }
+    
+    .inquiry-btn:active {
+        background: #FFF5F5;
+        transform: scale(0.98);
+    }
+
+    .modal-overlay {
+        position: absolute; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        background: rgba(0,0,0,0.5); 
+        z-index: 100;
+        opacity: 0; 
+        visibility: hidden; 
+        transition: opacity 0.3s ease;
+        backdrop-filter: blur(2px);
+    }
+    
+    .modal-overlay.open { 
+        opacity: 1; 
+        visibility: visible; 
+    }
+    
+    .bottom-sheet {
+        position: absolute; 
+        bottom: 0; 
+        left: 0; 
+        width: 100%; 
+        background: var(--card-white);
+        border-radius: 20px 20px 0 0; 
+        padding: 24px; 
+        padding-bottom: calc(24px + var(--safe-area-bottom));
+        transform: translateY(100%); 
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    }
+    
+    .modal-overlay.open .bottom-sheet { 
+        transform: translateY(0); 
+    }
+    
+    .sheet-handle {
+        width: 36px;
+        height: 5px;
+        background: #D1D1D6;
+        border-radius: 3px;
+        margin: 0 auto 20px;
+    }
+    
+    .sheet-title { 
+        font-size: 15px; 
+        font-weight: 700; 
+        margin-bottom: 14px;
+        color: var(--text-black);
+    }
+    
+    .radio-group { 
+        display: flex; 
+        gap: 10px; 
+        flex-wrap: wrap; 
+        margin-bottom: 28px; 
+    }
+    
+    .radio-label { 
+        display: flex; 
+        align-items: center; 
+        font-size: 14px; 
+        padding: 10px 16px; 
+        border: 1.5px solid var(--border-color); 
+        border-radius: 24px; 
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: white;
+    }
+    
+    .radio-label:active {
+        transform: scale(0.96);
+    }
+    
+    .radio-label.selected { 
+        border-color: var(--accent-red); 
+        background-color: #FFF5F5; 
+        color: var(--accent-red); 
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(208, 2, 27, 0.15);
+    }
+    
+    .radio-circle { 
+        width: 18px; 
+        height: 18px; 
+        border: 2px solid #D1D1D6; 
+        border-radius: 50%; 
+        margin-right: 8px; 
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    
+    .radio-label.selected .radio-circle { 
+        border-color: var(--accent-red); 
+    }
+    
+    .radio-label.selected .radio-circle::after { 
+        content: ''; 
+        position: absolute; 
+        top: 3px; 
+        left: 3px; 
+        width: 8px; 
+        height: 8px; 
+        background: var(--accent-red); 
+        border-radius: 50%;
+        animation: radioScale 0.2s ease;
+    }
+    
+    @keyframes radioScale {
+        0% { transform: scale(0); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+    
+    .button-row {
+        display: flex;
+        gap: 12px;
+    }
+    
+    .btn { 
+        flex: 1; 
+        padding: 16px; 
+        border-radius: 10px; 
+        font-size: 16px; 
+        font-weight: 700; 
+        text-align: center; 
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+    }
+    
+    .btn-cancel { 
+        background: #F2F2F4; 
+        color: var(--text-black);
+    }
+    
+    .btn-cancel:active {
+        background: #E5E5E7;
+    }
+    
+    .btn-confirm { 
+        background: var(--text-black); 
+        color: white;
+    }
+    
+    .btn-confirm:active {
+        background: #2C2C2E;
+        transform: scale(0.98);
+    }
+    
+    .end-message {
+        text-align: center; 
+        padding: 40px 20px; 
+        color: #C7C7CC; 
+        font-size: 13px;
+        letter-spacing: 0.2px;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .list-item {
+        animation: fadeIn 0.3s ease;
+    }
+</style>
+
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header-sticky">
+            <div class="account-card">
+                <div class="branch-info" contenteditable="true">浦和支店 普通 1217145</div>
+                <div class="balance-row">
+                    <div style="display:flex; align-items:baseline;">
+                        <span class="balance-amount" id="balanceText" contenteditable="true">251,012</span>
+                        <span class="currency">円</span>
+                    </div>
+                </div>
+                <div class="balance-toggle" onclick="toggleBalance()">
+                    <span contenteditable="true">取引後残高</span>
+                    <div class="toggle-switch" id="balanceSwitch"></div>
+                </div>
+            </div>
+            <div class="controls-area">
+                <div class="search-btn" onclick="openFilter()">
+                    <span style="margin-right:8px; color:#D0021B; font-weight:bold;">Q</span> 
+                    <span contenteditable="true">口座・期間等を変更</span>
+                </div>
+            </div>
+        </div>
+
+    <div class="transaction-list-container">
+        <div class="list-header" contenteditable="true">2025年 12月</div>
+        <div id="dynamicList"></div>
+        <div class="end-message">これ以上の履歴はありません</div>
+    </div>
+    
+    <div class="detail-page" id="detailPage">
+        <div class="nav-bar">
+            <div class="nav-back" onclick="closeDetail()">戻る</div>
+            <div class="nav-title">明細詳細</div>
+            <div class="nav-placeholder"></div>
+        </div>
+        <div class="detail-content">
+            <div class="detail-card">
+                <div class="value-large" id="detailAmount" contenteditable="true">-27,000 円</div>
+                <div class="detail-row">
+                    <span class="label">取引日</span>
+                    <span class="value" id="detailDate" contenteditable="true">2025/12/27</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">摘要內容</span>
+                    <span class="value" id="detailDesc" contenteditable="true">振込IB2 | オウ シンハク</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">取引区分</span>
+                    <span class="value" contenteditable="true">振込出金</span>
+                </div>
+            </div>
+            <div class="detail-card">
+                <div class="detail-row">
+                    <span class="label">取引後残高</span>
+                    <span class="value" contenteditable="true">251,012 円</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">取扱店</span>
+                    <span class="value" contenteditable="true">浦和支店</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">受付番号</span>
+                    <span class="value" contenteditable="true">290192</span>
+                </div>
+            </div>
+            <div style="padding: 20px;">
+               <div class="inquiry-btn">この取引について問い合わせる</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="filterModal" onclick="handleOverlayClick(event)">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title" contenteditable="true">表示期間</div>
+            <div class="radio-group" id="periodGroup">
+                <div class="radio-label selected" onclick="selectRadio(this, 'periodGroup')">
+                    <div class="radio-circle"></div>直近30日間
+                </div>
+                <div class="radio-label" onclick="selectRadio(this, 'periodGroup')">
+                    <div class="radio-circle"></div>今月
+                </div>
+                <div class="radio-label" onclick="selectRadio(this, 'periodGroup')">
+                    <div class="radio-circle"></div>前月
+                </div>
+            </div>
+            <div class="sheet-title" contenteditable="true">取引種別</div>
+            <div class="radio-group" id="typeGroup">
+                <div class="radio-label selected" onclick="selectRadio(this, 'typeGroup')">
+                    <div class="radio-circle"></div>全取引
+                </div>
+                <div class="radio-label" onclick="selectRadio(this, 'typeGroup')">
+                    <div class="radio-circle"></div>入金
+                </div>
+                <div class="radio-label" onclick="selectRadio(this, 'typeGroup')">
+                    <div class="radio-circle"></div>出金
+                </div>
+            </div>
+            <div class="button-row">
+                <div class="btn btn-cancel" onclick="closeFilter()">キャンセル</div>
+                <div class="btn btn-confirm" onclick="closeFilter()">設定する</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const fixedData = [
+        { date: "12/27", desc: "振込IB2 | オウ　シンハク", amount: "-27,000", type: "neg" },
+        { date: "12/25", desc: "D現金還元 | 7ネン11ガツブン", amount: "475", type: "pos" },
+        { date: "12/23", desc: "振込IB2 | オウ　シンハク", amount: "-30,000", type: "neg" },
+        { date: "12/19", desc: "振込BZ1 | カ）エール", amount: "300,000", type: "pos" },
+        { date: "12/19", desc: "デビット1 | 288481 FIT", amount: "-4,378", type: "neg" },
+        { date: "12/10", desc: "カードC1 | セブンギンコウATM", amount: "-30,000", type: "neg" },
+        { date: "12/10", desc: "口座振替 | ミツビシUFJニコス", amount: "-128,704", type: "neg" },
+        { date: "12/08", desc: "デビット3 | AMAZON. C", amount: "999", type: "pos" },
+        { date: "12/05", desc: "給料 | 12月分", amount: "450,000", type: "pos" },
+        { date: "12/03", desc: "デビット3 | AMAZON. C", amount: "-1,480", type: "neg" },
+        { date: "12/02", desc: "デビット1 | 845679 AMAZON", amount: "-999", type: "neg" },
+        { date: "12/01", desc: "デビット1 | 267208 AMAZON", amount: "-1,078", type: "neg" },
+        { date: "11/30", desc: "デビット1 | 781659 AMAZON", amount: "-999", type: "neg" },
+        { date: "11/29", desc: "為替手数料 | フリコミ　テスウリョウ", amount: "-220", type: "neg" },
+        { date: "11/29", desc: "振込IB2 | ハラダトモヤ", amount: "-300,000", type: "neg" }
+    ];
+
+    function renderList() {
+        let html = '';
+        fixedData.forEach((item, index) => {
+            const colorClass = item.type === "neg" ? "amount-neg" : "amount-pos";
+            const amountWithUnit = item.amount + " 円";
+            
+            html += `
+            <div class="list-item" onclick="openDetail('${item.date}', '${escapeHtml(item.desc)}', '${amountWithUnit}', '${colorClass}')" style="animation-delay: ${index * 0.03}s">
+                <div class="item-left">
+                    <span class="item-date" contenteditable="true">${item.date}</span>
+                    <span class="item-desc" contenteditable="true">${item.desc}</span>
+                </div>
+                <div style="display:flex; align-items:center;">
+                    <span class="item-amount ${colorClass}" contenteditable="true">${amountWithUnit}</span>
+                    <span class="chevron">›</span>
+                </div>
+            </div>`;
+        });
+        document.getElementById('dynamicList').innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/'/g, "\\'");
+    }
+
+    renderList();
+
+    function openDetail(date, desc, amount, colorClass) {
+        if (isEditing()) return;
+        document.getElementById('detailDate').innerText = "2025/" + date;
+        document.getElementById('detailDesc').innerText = desc;
+        const amountEl = document.getElementById('detailAmount');
+        amountEl.innerText = amount;
+        amountEl.style.color = colorClass.includes('neg') ? "var(--accent-red)" : "var(--accent-green)";
+        document.getElementById('detailPage').classList.add('active');
+    }
+    
+    function closeDetail() { 
+        document.getElementById('detailPage').classList.remove('active'); 
+    }
+    
+    function openFilter() { 
+        if (isEditing()) return; 
+        document.getElementById('filterModal').classList.add('open'); 
+    }
+    
+    function closeFilter() { 
+        document.getElementById('filterModal').classList.remove('open'); 
+    }
+    
+    function handleOverlayClick(event) {
+        if (event.target === event.currentTarget) {
+            closeFilter();
+        }
+    }
+    
+    function isEditing() { 
+        return window.getSelection().toString().length > 0 || document.activeElement.isContentEditable; 
+    }
+
+    function selectRadio(element, groupId) {
+        const group = document.getElementById(groupId);
+        group.querySelectorAll('.radio-label').forEach(label => {
+            label.classList.remove('selected');
+        });
+        element.classList.add('selected');
+    }
+
+    let isBalanceHidden = false;
+    let originalBalance = "";
+    
+    function toggleBalance() {
+        if (isEditing()) return;
+        const balanceEl = document.getElementById('balanceText');
+        const toggleWrapper = document.querySelector('.balance-toggle');
+        isBalanceHidden = !isBalanceHidden;
+        
+        if(isBalanceHidden) {
+            originalBalance = balanceEl.innerText; 
+            balanceEl.innerText = "***,***";
+            toggleWrapper.classList.add('active');
+        } else {
+            if(originalBalance) balanceEl.innerText = originalBalance;
+            toggleWrapper.classList.remove('active');
+        }
+    }
+</script>
+
+</body>
+</html>
